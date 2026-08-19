@@ -261,6 +261,17 @@
       letter-spacing: .04em;
     }
 
+    .custom-ticket-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 9px;
+      margin-top: 9px;
+    }
+
+    .custom-ticket-row .secondary-btn {
+      min-width: 150px;
+    }
+
     .message {
       min-height: 20px;
       margin: 10px 2px 0;
@@ -404,6 +415,22 @@
       cursor: pointer;
     }
 
+    .reward-actions {
+      display: grid;
+      gap: 6px;
+      min-width: 108px;
+    }
+
+    .reward-actions .mini-btn {
+      width: 100%;
+    }
+
+    .reward-actions .mini-btn.ticket-restore {
+      border-color: #9e7350;
+      background: #f4eadf;
+      color: #5e412b;
+    }
+
     .empty {
       padding: 18px;
       border: 1px dashed var(--line);
@@ -537,12 +564,24 @@
         grid-template-columns: 1fr;
       }
 
+      .custom-ticket-row {
+        grid-template-columns: 1fr;
+      }
+
+      .custom-ticket-row .secondary-btn {
+        width: 100%;
+      }
+
       .reward-row {
         grid-template-columns: 40px 1fr;
       }
 
-      .reward-row .mini-btn {
+      .reward-actions {
         grid-column: 1 / -1;
+        width: 100%;
+      }
+
+      .reward-row .mini-btn {
         width: 100%;
       }
 
@@ -619,6 +658,22 @@
       <button id="addButton" class="primary-btn charge-btn" type="button">
         +6 TICKETS
       </button>
+
+      <div class="custom-ticket-row">
+        <input
+          id="customTicketCount"
+          class="input"
+          type="number"
+          min="1"
+          step="1"
+          inputmode="numeric"
+          placeholder="원하는 티켓 수"
+        />
+
+        <button id="customAddButton" class="secondary-btn" type="button">
+          원하는 만큼 지급
+        </button>
+      </div>
 
       <p id="message" class="message"></p>
     </section>
@@ -723,6 +778,8 @@
     const realtimeStatus = document.querySelector('#realtimeStatus');
 
     const addButton = document.querySelector('#addButton');
+    const customTicketCount = document.querySelector('#customTicketCount');
+    const customAddButton = document.querySelector('#customAddButton');
     const refreshButton = document.querySelector('#refreshButton');
     const message = document.querySelector('#message');
 
@@ -906,26 +963,53 @@
             </div>
           </div>
 
-          <button
-            class="mini-btn"
-            type="button"
-            ${reward.claimed_ticket_no == null ? 'disabled' : ''}
-          >
-            보상 복구
-          </button>
+          <div class="reward-actions">
+            <button
+              class="mini-btn reward-only-restore"
+              type="button"
+              ${reward.claimed_ticket_no == null ? 'disabled' : ''}
+            >
+              보상만 복구
+            </button>
+
+            <button
+              class="mini-btn ticket-restore"
+              type="button"
+              ${reward.claimed_ticket_no == null ? 'disabled' : ''}
+            >
+              쿠지까지 복구
+            </button>
+          </div>
         `;
 
-        const restoreButton = row.querySelector('.mini-btn');
+        const rewardOnlyButton =
+          row.querySelector('.reward-only-restore');
+
+        const ticketRestoreButton =
+          row.querySelector('.ticket-restore');
 
         if (reward.claimed_ticket_no != null) {
-          restoreButton.addEventListener('click', () => {
+          rewardOnlyButton.addEventListener('click', () => {
             openConfirm({
               type: 'reward',
               id: reward.id,
-              title: `${reward.rank} 보상 복구`,
+              title: `${reward.rank} 보상만 복구`,
               copy:
-                `“${reward.name}” 수령 처리를 취소하고 ` +
-                `${reward.claimed_ticket_no}번 티켓의 보상 선택 상태로 되돌립니다.`
+                `“${reward.name}” 수령 처리만 취소하고 ` +
+                `${reward.claimed_ticket_no}번 티켓의 보상 선택 상태로 되돌립니다.`,
+              confirmText: '보상만 복구'
+            });
+          });
+
+          ticketRestoreButton.addEventListener('click', () => {
+            openConfirm({
+              type: 'ticket',
+              id: reward.claimed_ticket_no,
+              title: `${reward.claimed_ticket_no}번 쿠지까지 복구`,
+              copy:
+                `“${reward.name}” 보상과 ${reward.claimed_ticket_no}번 쿠지를 ` +
+                `모두 뽑기 전 상태로 되돌립니다. 뽑기권도 1장 복구됩니다.`,
+              confirmText: '쿠지까지 복구'
             });
           });
         }
@@ -946,16 +1030,35 @@
       refreshButton.disabled = false;
     }
 
-    function addTickets() {
+    function addTickets(count = 6) {
       openConfirm({
         type: 'add',
         id: null,
+        count,
         kicker: 'ADMIN AUTH',
-        title: '뽑기권 6장을 지급할까요?',
+        title: `뽑기권 ${count}장을 지급할까요?`,
         copy:
-          '관리자 비밀번호를 입력하면 즉시 뽑기권 6장이 지급됩니다.',
-        confirmText: '+6 지급'
+          `관리자 비밀번호를 입력하면 즉시 뽑기권 ${count}장이 지급됩니다.`,
+        confirmText: `+${count} 지급`
       });
+    }
+
+    function addCustomTickets() {
+      const count = Number(customTicketCount.value);
+
+      if (
+        !Number.isInteger(count) ||
+        count <= 0
+      ) {
+        setMessage(
+          '지급할 티켓 수를 1장 이상 입력해주세요.',
+          'error'
+        );
+        customTicketCount.focus();
+        return;
+      }
+
+      addTickets(count);
     }
 
     function openConfirm(action) {
@@ -1026,7 +1129,7 @@
       if (action.type === 'add') {
         rpcName = 'add_tickets';
         params = {
-          p_count: 6,
+          p_count: action.count ?? 6,
           p_password: password
         };
       } else if (action.type === 'ticket') {
@@ -1089,9 +1192,11 @@
 
       if (action.type === 'add') {
         setMessage(
-          '뽑기권 6장 지급 완료!',
+          `뽑기권 ${action.count ?? 6}장 지급 완료!`,
           'success'
         );
+
+        customTicketCount.value = '';
       } else if (action.type === 'ticket') {
         setMessage(
           `${action.id}번 티켓 복구 완료!`,
@@ -1124,7 +1229,21 @@
 
     addButton.addEventListener(
       'click',
-      addTickets
+      () => addTickets(6)
+    );
+
+    customAddButton.addEventListener(
+      'click',
+      addCustomTickets
+    );
+
+    customTicketCount.addEventListener(
+      'keydown',
+      event => {
+        if (event.key === 'Enter') {
+          addCustomTickets();
+        }
+      }
     );
 
     refreshButton.addEventListener(
