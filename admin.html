@@ -466,6 +466,41 @@
       margin-top: 18px;
     }
 
+
+    .danger-zone {
+      border-color: #d8b5af;
+      background: linear-gradient(180deg, #fffaf6, #f9ece8);
+    }
+
+    .danger-box {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 16px;
+      border: 1px solid #dfc1bc;
+      border-radius: 14px;
+      background: rgba(255,255,255,.68);
+    }
+
+    .danger-box strong {
+      display: block;
+      color: #7f4038;
+      font-size: 14px;
+    }
+
+    .danger-box p {
+      margin: 5px 0 0;
+      color: #8d6f6a;
+      font-size: 11px;
+      line-height: 1.6;
+    }
+
+    .danger-box .danger-btn {
+      flex: 0 0 auto;
+      min-width: 120px;
+    }
+
     @media (max-width: 760px) {
       .app {
         width: min(100% - 20px, 1100px);
@@ -504,6 +539,15 @@
 
       .reward-row .mini-btn {
         grid-column: 1 / -1;
+        width: 100%;
+      }
+
+      .danger-box {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .danger-box .danger-btn {
         width: 100%;
       }
     }
@@ -610,6 +654,32 @@
         <div id="rewardList" class="reward-list"></div>
       </section>
     </div>
+
+    <section class="section danger-zone">
+      <div class="section-head">
+        <div>
+          <h2 class="section-title">전체 초기화</h2>
+          <p class="section-note">
+            테스트 기록을 모두 지우고 실전 시작 전 상태로 되돌립니다.
+          </p>
+        </div>
+      </div>
+
+      <div class="danger-box">
+        <div>
+          <strong>게임 데이터 전체 초기화</strong>
+          <p>
+            모든 쿠지/보상 기록, ROUND, pending 상태, LAST ONE 상태가 초기화되고
+            뽑기권은 0장이 됩니다.
+          </p>
+        </div>
+
+        <button id="resetGameButton" class="danger-btn" type="button">
+          전체 초기화
+        </button>
+      </div>
+    </section>
+
   </main>
 
   <div id="confirmModal" class="confirm-modal">
@@ -653,6 +723,7 @@
 
     const ticketGrid = document.querySelector('#ticketGrid');
     const rewardList = document.querySelector('#rewardList');
+    const resetGameButton = document.querySelector('#resetGameButton');
 
     const confirmModal = document.querySelector('#confirmModal');
     const confirmTitle = document.querySelector('#confirmTitle');
@@ -959,10 +1030,15 @@
           p_ticket_no: action.id,
           p_password: password
         };
-      } else {
+      } else if (action.type === 'reward') {
         rpcName = 'admin_restore_reward';
         params = {
           p_reward_id: action.id,
+          p_password: password
+        };
+      } else {
+        rpcName = 'admin_reset_game';
+        params = {
           p_password: password
         };
       }
@@ -1007,7 +1083,9 @@
       setMessage(
         action.type === 'ticket'
           ? `${action.id}번 티켓 복구 완료!`
-          : '보상 복구 완료! 사용자 페이지에서 다시 선택할 수 있습니다.',
+          : action.type === 'reward'
+            ? '보상 복구 완료! 사용자 페이지에서 다시 선택할 수 있습니다.'
+            : '전체 초기화 완료! 뽑기권 0장 상태로 돌아갔습니다.',
         'success'
       );
 
@@ -1032,6 +1110,23 @@
     refreshButton.addEventListener(
       'click',
       refreshAll
+    );
+
+    resetGameButton.addEventListener(
+      'click',
+      () => {
+        if (!requirePassword()) return;
+
+        openConfirm({
+          type: 'reset',
+          id: null,
+          title: '정말 전체 초기화할까요?',
+          copy:
+            '모든 쿠지 뽑기 기록, 보상 수령 기록, ROUND, 보상 선택 대기 상태, ' +
+            'LAST ONE 상태가 모두 초기화됩니다. 뽑기권도 0장이 됩니다. ' +
+            '이 작업은 실전 시작 직전 또는 테스트 초기화 때만 사용해주세요.'
+        });
+      }
     );
 
     confirmCancel.addEventListener(
