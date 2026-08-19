@@ -353,6 +353,21 @@
       font-size: 14px;
     }
 
+    .ticket.admin-unopened {
+      opacity: .9;
+      cursor: default;
+      filter: saturate(.82);
+    }
+
+    .ticket.admin-unopened .rank {
+      font-size: 22px;
+      color: inherit;
+    }
+
+    .ticket.admin-unopened .no {
+      color: rgba(70, 58, 48, .62);
+    }
+
     .reward-list {
       display: grid;
       gap: 8px;
@@ -484,6 +499,35 @@
       color: var(--muted);
       font-size: 12px;
       line-height: 1.65;
+    }
+
+    .swap-rank-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .swap-rank-btn {
+      min-height: 54px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      color: var(--ink);
+      font-size: 20px;
+      font-weight: 1000;
+      cursor: pointer;
+    }
+
+    .swap-rank-btn.selected {
+      border-color: #a57d4e;
+      background: #f4e6cf;
+      box-shadow: 0 0 0 2px rgba(165,125,78,.12) inset;
+    }
+
+    .swap-rank-btn:disabled {
+      opacity: .34;
+      cursor: not-allowed;
     }
 
     .confirm-password {
@@ -649,12 +693,6 @@
         </div>
       </div>
 
-      <div class="password-box">
-        <button id="refreshButton" class="ghost-btn" type="button">
-          새로고침
-        </button>
-      </div>
-
       <button id="addButton" class="primary-btn charge-btn" type="button">
         +6 TICKETS
       </button>
@@ -678,6 +716,21 @@
       <p id="message" class="message"></p>
     </section>
 
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <h2 class="section-title">남은 쿠지 섞기</h2>
+          <p class="section-note">
+            이미 뽑은 쿠지는 유지하고, 아직 안 뽑은 쿠지의 숨겨진 등급 배치만 다시 섞습니다.
+          </p>
+        </div>
+      </div>
+
+      <button id="shuffleButton" class="secondary-btn charge-btn" type="button">
+        남은 쿠지 섞기
+      </button>
+    </section>
+
     <div class="admin-grid">
       <section class="section">
         <div class="section-head">
@@ -687,6 +740,10 @@
               뽑힌 티켓을 누르면 해당 티켓을 미사용 상태로 복구할 수 있습니다.
             </p>
           </div>
+
+          <button id="refreshButton" class="ghost-btn" type="button">
+            전체 쿠지 배치 보기
+          </button>
         </div>
 
         <div id="ticketGrid" class="ticket-grid"></div>
@@ -732,6 +789,26 @@
     </section>
 
   </main>
+
+  <div id="swapModal" class="confirm-modal">
+    <div class="confirm-card">
+      <p class="confirm-kicker">SECRET SWAP</p>
+      <h3 id="swapTitle">미사용 쿠지 등급 교체</h3>
+      <p id="swapCopy" class="confirm-copy"></p>
+
+      <div class="swap-rank-grid" id="swapRankGrid"></div>
+
+      <div class="confirm-actions">
+        <button id="swapCancel" class="ghost-btn" type="button">
+          취소
+        </button>
+
+        <button id="swapContinue" class="secondary-btn" type="button" disabled>
+          선택한 등급과 교체
+        </button>
+      </div>
+    </div>
+  </div>
 
   <div id="confirmModal" class="confirm-modal">
     <div class="confirm-card">
@@ -780,12 +857,20 @@
     const addButton = document.querySelector('#addButton');
     const customTicketCount = document.querySelector('#customTicketCount');
     const customAddButton = document.querySelector('#customAddButton');
+    const shuffleButton = document.querySelector('#shuffleButton');
     const refreshButton = document.querySelector('#refreshButton');
     const message = document.querySelector('#message');
 
     const ticketGrid = document.querySelector('#ticketGrid');
     const rewardList = document.querySelector('#rewardList');
     const resetGameButton = document.querySelector('#resetGameButton');
+
+    const swapModal = document.querySelector('#swapModal');
+    const swapTitle = document.querySelector('#swapTitle');
+    const swapCopy = document.querySelector('#swapCopy');
+    const swapRankGrid = document.querySelector('#swapRankGrid');
+    const swapCancel = document.querySelector('#swapCancel');
+    const swapContinue = document.querySelector('#swapContinue');
 
     const confirmModal = document.querySelector('#confirmModal');
     const confirmKicker = document.querySelector('#confirmKicker');
@@ -798,6 +883,8 @@
 
     let currentGame = null;
     let pendingAdminAction = null;
+    let pendingSwapTicket = null;
+    let pendingSwapRank = null;
 
     function setMessage(text = '', type = '') {
       message.textContent = text;
@@ -856,15 +943,44 @@
       }
     }
 
-    async function loadTickets() {
-      const { data, error } = await client.rpc(
-        'get_kuji_tickets'
-      );
+    async function loadTickets(password = null) {
+      let data;
+      let error;
+
+      if (password) {
+        const result = await client.rpc(
+          'admin_get_kuji_tickets',
+          {
+            p_password: password
+          }
+        );
+
+        data = result.data;
+        error = result.error;
+      } else {
+        const result = await client.rpc(
+          'get_kuji_tickets'
+        );
+
+        data = result.data;
+        error = result.error;
+      }
 
       if (error) {
         console.error(error);
-        ticketGrid.innerHTML =
-          '<div class="empty">티켓 정보를 불러오지 못했습니다.</div>';
+
+        if (
+          error.message.includes(
+            'INVALID_ADMIN_PASSWORD'
+          )
+        ) {
+          ticketGrid.innerHTML =
+            '<div class="empty">관리자 비밀번호 확인이 필요합니다.</div>';
+        } else {
+          ticketGrid.innerHTML =
+            '<div class="empty">티켓 정보를 불러오지 못했습니다.</div>';
+        }
+
         return;
       }
 
@@ -876,17 +992,17 @@
         button.type = 'button';
         button.className = 'ticket';
 
+        if (ticket.rank) {
+          button.classList.add(
+            `rank-${ticket.rank.toLowerCase()}`
+          );
+        }
+
         if (ticket.drawn) {
           button.classList.add('opened');
 
-          if (ticket.rank) {
-            button.classList.add(
-              `rank-${ticket.rank.toLowerCase()}`
-            );
-          }
-
           button.innerHTML = `
-            <span class="no">${ticket.ticket_no}번</span>
+            <span class="no">${ticket.ticket_no}번 · 뽑음</span>
             <strong class="rank">${ticket.rank ?? '?'}</strong>
           `;
 
@@ -898,15 +1014,27 @@
               copy:
                 `이 티켓을 다시 미사용 상태로 되돌립니다. ` +
                 `연결된 보상이 있다면 함께 복구되고, ` +
-                `뽑기권은 1장 다시 증가합니다.`
+                `뽑기권은 1장 다시 증가합니다.`,
+              confirmText: '쿠지 복구'
             });
           });
         } else {
+          button.classList.add('admin-unopened');
+
           button.innerHTML = `
-            <span class="no">${ticket.ticket_no}번</span>
-            <strong class="rank">미사용</strong>
+            <span class="no">${ticket.ticket_no}번 · 미사용</span>
+            <strong class="rank">${ticket.rank ?? '?'}</strong>
           `;
-          button.disabled = true;
+
+          if (ticket.rank) {
+            button.disabled = false;
+
+            button.addEventListener('click', () => {
+              openSwapRankModal(ticket);
+            });
+          } else {
+            button.disabled = true;
+          }
         }
 
         ticketGrid.appendChild(button);
@@ -1018,12 +1146,12 @@
       });
     }
 
-    async function refreshAll() {
+    async function refreshAll(adminPassword = null) {
       refreshButton.disabled = true;
 
       await Promise.all([
         loadGame(),
-        loadTickets(),
+        loadTickets(adminPassword),
         loadRewards()
       ]);
 
@@ -1061,6 +1189,85 @@
       addTickets(count);
     }
 
+    function openSwapRankModal(ticket) {
+      pendingSwapTicket = ticket;
+      pendingSwapRank = null;
+
+      swapTitle.textContent =
+        `${ticket.ticket_no}번 쿠지 등급 교체`;
+
+      swapCopy.textContent =
+        `현재 숨겨진 등급은 ${ticket.rank}입니다. ` +
+        `교체하고 싶은 등급을 선택하면, 해당 등급의 다른 미사용 쿠지 한 장과 서로 바뀝니다.`;
+
+      swapRankGrid.innerHTML = '';
+      swapContinue.disabled = true;
+
+      ['A', 'B', 'C', 'D', 'E'].forEach(rank => {
+        const button = document.createElement('button');
+
+        button.type = 'button';
+        button.className = 'swap-rank-btn';
+        button.textContent = rank;
+
+        if (rank === ticket.rank) {
+          button.disabled = true;
+        }
+
+        button.addEventListener('click', () => {
+          pendingSwapRank = rank;
+
+          swapRankGrid
+            .querySelectorAll('.swap-rank-btn')
+            .forEach(btn => {
+              btn.classList.remove('selected');
+            });
+
+          button.classList.add('selected');
+          swapContinue.disabled = false;
+        });
+
+        swapRankGrid.appendChild(button);
+      });
+
+      swapModal.classList.add('show');
+    }
+
+    function closeSwapRankModal() {
+      swapModal.classList.remove('show');
+      pendingSwapTicket = null;
+      pendingSwapRank = null;
+      swapContinue.disabled = true;
+    }
+
+    function proceedSwapRank() {
+      if (
+        !pendingSwapTicket ||
+        !pendingSwapRank
+      ) {
+        return;
+      }
+
+      const ticket = pendingSwapTicket;
+      const targetRank = pendingSwapRank;
+
+      closeSwapRankModal();
+
+      openConfirm({
+        type: 'swap-rank',
+        id: ticket.ticket_no,
+        targetRank,
+        kicker: 'SECRET SWAP',
+        title:
+          `${ticket.ticket_no}번을 ${targetRank}로 바꿀까요?`,
+        copy:
+          `${ticket.ticket_no}번 쿠지의 ${ticket.rank} 등급과 ` +
+          `남아 있는 ${targetRank} 등급 쿠지 한 장을 랜덤으로 서로 교체합니다. ` +
+          `전체 등급 수량은 변하지 않습니다.`,
+        confirmText: '등급 교체'
+      });
+    }
+
     function openConfirm(action) {
       pendingAdminAction = action;
 
@@ -1084,7 +1291,10 @@
         action.type === 'ticket' ||
         action.type === 'reward'
           ? 'danger-btn'
-          : 'primary-btn';
+          : action.type === 'shuffle' ||
+            action.type === 'swap-rank'
+            ? 'secondary-btn'
+            : 'primary-btn';
 
       confirmPassword.value = '';
       setConfirmMessage('');
@@ -1123,6 +1333,47 @@
       confirmExecute.disabled = true;
       setConfirmMessage('처리 중입니다.');
 
+      if (action.type === 'view') {
+        const { error } = await client.rpc(
+          'admin_get_kuji_tickets',
+          {
+            p_password: password
+          }
+        );
+
+        if (error) {
+          console.error(error);
+          confirmExecute.disabled = false;
+
+          if (
+            error.message.includes(
+              'INVALID_ADMIN_PASSWORD'
+            )
+          ) {
+            setConfirmMessage(
+              '비밀번호가 틀렸습니다.',
+              'error'
+            );
+            confirmPassword.select();
+          } else {
+            setConfirmMessage(
+              `조회 실패: ${error.message}`,
+              'error'
+            );
+          }
+
+          return;
+        }
+
+        closeConfirm();
+        await refreshAll(password);
+        setMessage(
+          '관리자용 전체 쿠지 배치를 표시했습니다.',
+          'success'
+        );
+        return;
+      }
+
       let rpcName;
       let params;
 
@@ -1142,6 +1393,18 @@
         rpcName = 'admin_restore_reward';
         params = {
           p_reward_id: action.id,
+          p_password: password
+        };
+      } else if (action.type === 'shuffle') {
+        rpcName = 'admin_shuffle_unopened_tickets';
+        params = {
+          p_password: password
+        };
+      } else if (action.type === 'swap-rank') {
+        rpcName = 'admin_swap_unopened_ticket_rank';
+        params = {
+          p_ticket_no: action.id,
+          p_target_rank: action.targetRank,
           p_password: password
         };
       } else {
@@ -1177,7 +1440,45 @@
           )
         ) {
           setConfirmMessage(
-            '현재 다른 보상 선택이 대기 중이라 이 작업을 할 수 없습니다.',
+            action.type === 'shuffle'
+              ? '현재 보상 선택이 대기 중이라 남은 쿠지를 섞을 수 없습니다.'
+              : '현재 다른 보상 선택이 대기 중이라 이 작업을 할 수 없습니다.',
+            'error'
+          );
+        } else if (
+          error.message.includes(
+            'NOT_ENOUGH_TICKETS'
+          )
+        ) {
+          setConfirmMessage(
+            '섞을 수 있는 미사용 쿠지가 2장 미만입니다.',
+            'error'
+          );
+        } else if (
+          error.message.includes(
+            'TARGET_RANK_NOT_FOUND'
+          )
+        ) {
+          setConfirmMessage(
+            '남아 있는 해당 등급의 미사용 쿠지가 없습니다.',
+            'error'
+          );
+        } else if (
+          error.message.includes(
+            'TICKET_ALREADY_DRAWN'
+          )
+        ) {
+          setConfirmMessage(
+            '이미 뽑힌 쿠지는 등급을 교체할 수 없습니다.',
+            'error'
+          );
+        } else if (
+          error.message.includes(
+            'SAME_RANK'
+          )
+        ) {
+          setConfirmMessage(
+            '현재 등급과 같은 등급은 선택할 수 없습니다.',
             'error'
           );
         } else {
@@ -1207,6 +1508,16 @@
           '보상 복구 완료! 사용자 페이지에서 다시 선택할 수 있습니다.',
           'success'
         );
+      } else if (action.type === 'shuffle') {
+        setMessage(
+          '남은 쿠지 섞기 완료!',
+          'success'
+        );
+      } else if (action.type === 'swap-rank') {
+        setMessage(
+          `${action.id}번 쿠지를 ${action.targetRank} 등급과 교체했습니다.`,
+          'success'
+        );
       } else {
         setMessage(
           '전체 초기화 완료! 뽑기권 0장 상태로 돌아갔습니다.',
@@ -1214,8 +1525,10 @@
         );
       }
 
+      const refreshPassword = password;
+
       closeConfirm();
-      await refreshAll();
+      await refreshAll(refreshPassword);
     }
 
     function escapeHtml(value) {
@@ -1246,9 +1559,34 @@
       }
     );
 
+    shuffleButton.addEventListener(
+      'click',
+      () => {
+        openConfirm({
+          type: 'shuffle',
+          id: null,
+          kicker: 'SHUFFLE KUJI',
+          title: '남은 쿠지를 다시 섞을까요?',
+          copy:
+            '이미 뽑은 쿠지는 그대로 유지되고, 아직 안 뽑은 쿠지의 숨겨진 등급 배치만 랜덤으로 다시 섞입니다.',
+          confirmText: '남은 쿠지 섞기'
+        });
+      }
+    );
+
     refreshButton.addEventListener(
       'click',
-      refreshAll
+      () => {
+        openConfirm({
+          type: 'view',
+          id: null,
+          kicker: 'ADMIN VIEW',
+          title: '전체 쿠지 배치를 확인할까요?',
+          copy:
+            '관리자 비밀번호를 입력하면 미사용 쿠지의 숨겨진 등급까지 모두 표시합니다.',
+          confirmText: '배치 보기'
+        });
+      }
     );
 
     resetGameButton.addEventListener(
@@ -1263,6 +1601,25 @@
             'LAST ONE 상태가 모두 초기화됩니다. 뽑기권도 0장이 됩니다. ' +
             '이 작업은 실전 시작 직전 또는 테스트 초기화 때만 사용해주세요.'
         });
+      }
+    );
+
+    swapCancel.addEventListener(
+      'click',
+      closeSwapRankModal
+    );
+
+    swapContinue.addEventListener(
+      'click',
+      proceedSwapRank
+    );
+
+    swapModal.addEventListener(
+      'click',
+      event => {
+        if (event.target === swapModal) {
+          closeSwapRankModal();
+        }
       }
     );
 
