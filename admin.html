@@ -459,11 +459,15 @@
       line-height: 1.65;
     }
 
+    .confirm-password {
+      margin-top: 16px;
+    }
+
     .confirm-actions {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 8px;
-      margin-top: 18px;
+      margin-top: 12px;
     }
 
 
@@ -607,14 +611,6 @@
       </div>
 
       <div class="password-box">
-        <input
-          class="input"
-          type="password"
-          id="adminPassword"
-          placeholder="관리자 비밀번호"
-          autocomplete="current-password"
-        />
-
         <button id="refreshButton" class="ghost-btn" type="button">
           새로고침
         </button>
@@ -684,9 +680,19 @@
 
   <div id="confirmModal" class="confirm-modal">
     <div class="confirm-card">
-      <p class="confirm-kicker">ADMIN RECOVERY</p>
-      <h3 id="confirmTitle">복구하시겠습니까?</h3>
+      <p id="confirmKicker" class="confirm-kicker">ADMIN AUTH</p>
+      <h3 id="confirmTitle">관리자 확인</h3>
       <p id="confirmCopy" class="confirm-copy"></p>
+
+      <input
+        id="confirmPassword"
+        class="input confirm-password"
+        type="password"
+        placeholder="관리자 비밀번호"
+        autocomplete="current-password"
+      />
+
+      <p id="confirmMessage" class="message"></p>
 
       <div class="confirm-actions">
         <button id="confirmCancel" class="ghost-btn" type="button">
@@ -694,7 +700,7 @@
         </button>
 
         <button id="confirmExecute" class="danger-btn" type="button">
-          복구하기
+          확인
         </button>
       </div>
     </div>
@@ -716,7 +722,6 @@
     const pendingStatus = document.querySelector('#pendingStatus');
     const realtimeStatus = document.querySelector('#realtimeStatus');
 
-    const adminPassword = document.querySelector('#adminPassword');
     const addButton = document.querySelector('#addButton');
     const refreshButton = document.querySelector('#refreshButton');
     const message = document.querySelector('#message');
@@ -726,8 +731,11 @@
     const resetGameButton = document.querySelector('#resetGameButton');
 
     const confirmModal = document.querySelector('#confirmModal');
+    const confirmKicker = document.querySelector('#confirmKicker');
     const confirmTitle = document.querySelector('#confirmTitle');
     const confirmCopy = document.querySelector('#confirmCopy');
+    const confirmPassword = document.querySelector('#confirmPassword');
+    const confirmMessage = document.querySelector('#confirmMessage');
     const confirmCancel = document.querySelector('#confirmCancel');
     const confirmExecute = document.querySelector('#confirmExecute');
 
@@ -743,16 +751,13 @@
       }
     }
 
-    function requirePassword() {
-      const password = adminPassword.value.trim();
+    function setConfirmMessage(text = '', type = '') {
+      confirmMessage.textContent = text;
+      confirmMessage.className = 'message';
 
-      if (!password) {
-        setMessage('관리자 비밀번호를 입력해주세요.', 'error');
-        adminPassword.focus();
-        return null;
+      if (type) {
+        confirmMessage.classList.add(type);
       }
-
-      return password;
     }
 
     async function loadGame() {
@@ -941,90 +946,90 @@
       refreshButton.disabled = false;
     }
 
-    async function addTickets() {
-      const password = requirePassword();
-
-      if (!password) return;
-
-      addButton.disabled = true;
-      setMessage('뽑기권을 지급 중입니다.');
-
-      const { error } = await client.rpc(
-        'add_tickets',
-        {
-          p_count: 6,
-          p_password: password
-        }
-      );
-
-      addButton.disabled = false;
-
-      if (error) {
-        console.error(error);
-
-        if (
-          error.message.includes(
-            'INVALID_ADMIN_PASSWORD'
-          )
-        ) {
-          setMessage(
-            '비밀번호가 틀렸습니다.',
-            'error'
-          );
-        } else {
-          setMessage(
-            '뽑기권 지급에 실패했습니다.',
-            'error'
-          );
-        }
-
-        return;
-      }
-
-      setMessage(
-        '뽑기권 6장 지급 완료!',
-        'success'
-      );
-
-      await refreshAll();
+    function addTickets() {
+      openConfirm({
+        type: 'add',
+        id: null,
+        kicker: 'ADMIN AUTH',
+        title: '뽑기권 6장을 지급할까요?',
+        copy:
+          '관리자 비밀번호를 입력하면 즉시 뽑기권 6장이 지급됩니다.',
+        confirmText: '+6 지급'
+      });
     }
 
     function openConfirm(action) {
-      if (!requirePassword()) return;
-
       pendingAdminAction = action;
+
+      confirmKicker.textContent =
+        action.kicker ?? 'ADMIN AUTH';
 
       confirmTitle.textContent = action.title;
       confirmCopy.textContent = action.copy;
 
+      confirmExecute.textContent =
+        action.confirmText ?? (
+          action.type === 'reset'
+            ? '초기화'
+            : action.type === 'ticket' || action.type === 'reward'
+              ? '복구하기'
+              : '확인'
+        );
+
+      confirmExecute.className =
+        action.type === 'reset' ||
+        action.type === 'ticket' ||
+        action.type === 'reward'
+          ? 'danger-btn'
+          : 'primary-btn';
+
+      confirmPassword.value = '';
+      setConfirmMessage('');
+
       confirmModal.classList.add('show');
+
+      setTimeout(() => {
+        confirmPassword.focus();
+      }, 50);
     }
 
     function closeConfirm() {
       confirmModal.classList.remove('show');
       pendingAdminAction = null;
       confirmExecute.disabled = false;
+      confirmPassword.value = '';
+      setConfirmMessage('');
     }
 
     async function executeRecovery() {
       if (!pendingAdminAction) return;
 
-      const password = requirePassword();
+      const password = confirmPassword.value.trim();
 
       if (!password) {
-        closeConfirm();
+        setConfirmMessage(
+          '관리자 비밀번호를 입력해주세요.',
+          'error'
+        );
+        confirmPassword.focus();
         return;
       }
 
       const action = pendingAdminAction;
 
       confirmExecute.disabled = true;
-      setMessage('복구 처리 중입니다.');
+      setConfirmMessage('처리 중입니다.');
 
       let rpcName;
       let params;
 
-      if (action.type === 'ticket') {
+      if (action.type === 'add') {
+        rpcName = 'add_tickets';
+        params = {
+          p_count: 6,
+          p_password: password
+        };
+      } else if (action.type === 'ticket') {
         rpcName = 'admin_restore_ticket';
         params = {
           p_ticket_no: action.id,
@@ -1050,44 +1055,59 @@
 
       if (error) {
         console.error(error);
+        confirmExecute.disabled = false;
 
         if (
           error.message.includes(
             'INVALID_ADMIN_PASSWORD'
           )
         ) {
-          setMessage(
+          setConfirmMessage(
             '비밀번호가 틀렸습니다.',
             'error'
           );
+
+          confirmPassword.select();
         } else if (
           error.message.includes(
             'PENDING_REWARD_EXISTS'
           )
         ) {
-          setMessage(
-            '현재 다른 보상 선택이 대기 중이라 보상 복구를 할 수 없습니다.',
+          setConfirmMessage(
+            '현재 다른 보상 선택이 대기 중이라 이 작업을 할 수 없습니다.',
             'error'
           );
         } else {
-          setMessage(
-            `복구 실패: ${error.message}`,
+          setConfirmMessage(
+            `처리 실패: ${error.message}`,
             'error'
           );
         }
 
-        closeConfirm();
         return;
       }
 
-      setMessage(
-        action.type === 'ticket'
-          ? `${action.id}번 티켓 복구 완료!`
-          : action.type === 'reward'
-            ? '보상 복구 완료! 사용자 페이지에서 다시 선택할 수 있습니다.'
-            : '전체 초기화 완료! 뽑기권 0장 상태로 돌아갔습니다.',
-        'success'
-      );
+      if (action.type === 'add') {
+        setMessage(
+          '뽑기권 6장 지급 완료!',
+          'success'
+        );
+      } else if (action.type === 'ticket') {
+        setMessage(
+          `${action.id}번 티켓 복구 완료!`,
+          'success'
+        );
+      } else if (action.type === 'reward') {
+        setMessage(
+          '보상 복구 완료! 사용자 페이지에서 다시 선택할 수 있습니다.',
+          'success'
+        );
+      } else {
+        setMessage(
+          '전체 초기화 완료! 뽑기권 0장 상태로 돌아갔습니다.',
+          'success'
+        );
+      }
 
       closeConfirm();
       await refreshAll();
@@ -1115,8 +1135,6 @@
     resetGameButton.addEventListener(
       'click',
       () => {
-        if (!requirePassword()) return;
-
         openConfirm({
           type: 'reset',
           id: null,
@@ -1138,6 +1156,16 @@
       'click',
       executeRecovery
     );
+
+    confirmPassword.addEventListener(
+      'keydown',
+      event => {
+        if (event.key === 'Enter') {
+          executeRecovery();
+        }
+      }
+    );
+
 
     confirmModal.addEventListener(
       'click',
