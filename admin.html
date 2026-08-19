@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>1000 DAYS KUJI ADMIN</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg: #f4efe7;
+      --paper: #fffaf2;
+      --paper-2: #f8f0e4;
+      --line: #d8c8b4;
+      --ink: #2f2923;
+      --muted: #81766a;
+      --brown: #6f543b;
+      --brown-dark: #4c392a;
+      --gold: #b58b4d;
+      --gold-soft: #ead9b9;
+      --danger: #9d4d43;
+      --danger-soft: #f7e5e1;
+      --success: #63755f;
+      --success-soft: #e9efe6;
+      --shadow: 0 14px 34px rgba(65, 49, 35, .10);
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top, rgba(255,255,255,.75), transparent 34%),
+        var(--bg);
+      color: var(--ink);
+      font-family:
+        Inter,
+        Pretendard,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .app {
+      width: min(1100px, calc(100% - 28px));
+      margin: 0 auto;
+      padding: 26px 0 60px;
+    }
+
+    .hero {
+      padding: 26px 24px;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background:
+        linear-gradient(145deg, rgba(255,255,255,.82), rgba(250,243,233,.92));
+      box-shadow: var(--shadow);
+    }
+
+    .eyebrow {
+      margin: 0 0 7px;
+      color: var(--gold);
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: .23em;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(28px, 5vw, 42px);
+      letter-spacing: -.05em;
+    }
+
+    .hero-copy {
+      margin: 9px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .stat {
+      padding: 17px 16px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255,250,242,.84);
+    }
+
+    .stat-label {
+      display: block;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .08em;
+    }
+
+    .stat-value {
+      display: block;
+      margin-top: 5px;
+      font-size: 24px;
+      font-weight: 1000;
+      line-height: 1;
+    }
+
+    .status-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 13px;
+    }
+
+    .status-pill {
+      padding: 8px 11px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255,255,255,.58);
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .status-pill.pending {
+      border-color: #d6a45f;
+      background: #fff1d9;
+      color: #80571e;
+    }
+
+    .status-pill.unlocked {
+      border-color: #c5a66f;
+      background: #f9ecd1;
+      color: #72511f;
+    }
+
+    .section {
+      margin-top: 16px;
+      padding: 20px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: rgba(255,250,242,.90);
+      box-shadow: 0 10px 28px rgba(65,49,35,.07);
+    }
+
+    .section-head {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 15px;
+    }
+
+    .section-title {
+      margin: 0;
+      font-size: 18px;
+      letter-spacing: -.03em;
+    }
+
+    .section-note {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.5;
+    }
+
+    .password-box {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 9px;
+    }
+
+    .input {
+      width: 100%;
+      min-height: 48px;
+      padding: 0 14px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      outline: none;
+      background: #fff;
+      color: var(--ink);
+    }
+
+    .input:focus {
+      border-color: #ac8a63;
+      box-shadow: 0 0 0 3px rgba(172,138,99,.12);
+    }
+
+    .primary-btn,
+    .secondary-btn,
+    .danger-btn,
+    .ghost-btn {
+      min-height: 46px;
+      border-radius: 12px;
+      padding: 0 16px;
+      font-weight: 900;
+      cursor: pointer;
+      transition: transform .12s ease, opacity .12s ease, box-shadow .12s ease;
+    }
+
+    .primary-btn {
+      border: 1px solid var(--brown-dark);
+      background: var(--brown);
+      color: #fffaf2;
+      box-shadow: 0 8px 16px rgba(73,54,39,.16);
+    }
+
+    .secondary-btn {
+      border: 1px solid #a98357;
+      background: #b9905f;
+      color: #241b14;
+    }
+
+    .danger-btn {
+      border: 1px solid #a95e55;
+      background: var(--danger-soft);
+      color: #853f37;
+    }
+
+    .ghost-btn {
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+    }
+
+    .primary-btn:active,
+    .secondary-btn:active,
+    .danger-btn:active,
+    .ghost-btn:active {
+      transform: scale(.985);
+    }
+
+    button:disabled {
+      opacity: .46;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    .charge-btn {
+      width: 100%;
+      min-height: 64px;
+      margin-top: 10px;
+      font-size: 17px;
+      letter-spacing: .04em;
+    }
+
+    .message {
+      min-height: 20px;
+      margin: 10px 2px 0;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .message.success {
+      color: var(--success);
+    }
+
+    .message.error {
+      color: var(--danger);
+    }
+
+    .admin-grid {
+      display: grid;
+      grid-template-columns: 1.05fr .95fr;
+      gap: 16px;
+      align-items: start;
+    }
+
+    .ticket-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 8px;
+    }
+
+    .ticket {
+      min-height: 68px;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      background: #fff;
+      color: var(--ink);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 3px;
+      padding: 7px 4px;
+      cursor: pointer;
+    }
+
+    .ticket .no {
+      color: var(--muted);
+      font-size: 9px;
+      font-weight: 800;
+    }
+
+    .ticket .rank {
+      font-size: 24px;
+      font-weight: 1000;
+    }
+
+    .ticket.opened {
+      background: #f0e7dc;
+      border-color: #c9b49c;
+    }
+
+    .ticket.rank-a {
+      border-color: #c6a063;
+      background: linear-gradient(145deg, #fff5d8, #f1dbab);
+      box-shadow: 0 0 14px rgba(183,139,67,.16);
+    }
+
+    .ticket.rank-b {
+      border-color: #acbbc8;
+      background: linear-gradient(145deg, #f5f8fb, #e4ebf1);
+    }
+
+    .ticket.rank-c {
+      border-color: #c88e67;
+      background: linear-gradient(145deg, #fff1e7, #eed6c6);
+    }
+
+    .ticket:not(.opened) .rank {
+      color: #aaa096;
+      font-size: 14px;
+    }
+
+    .reward-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .reward-row {
+      display: grid;
+      grid-template-columns: 48px 1fr auto;
+      align-items: center;
+      gap: 11px;
+      padding: 11px 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+    }
+
+    .reward-rank {
+      display: grid;
+      place-items: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: var(--paper-2);
+      font-size: 18px;
+      font-weight: 1000;
+    }
+
+    .reward-name {
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .reward-desc {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 10px;
+      line-height: 1.4;
+    }
+
+    .reward-meta {
+      margin-top: 4px;
+      color: #a0723d;
+      font-size: 10px;
+      font-weight: 800;
+    }
+
+    .reward-row.unclaimed {
+      opacity: .54;
+    }
+
+    .mini-btn {
+      min-height: 36px;
+      padding: 0 10px;
+      border: 1px solid #c49f79;
+      border-radius: 9px;
+      background: #fff7ee;
+      color: #754f2d;
+      font-size: 10px;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .empty {
+      padding: 18px;
+      border: 1px dashed var(--line);
+      border-radius: 12px;
+      color: var(--muted);
+      font-size: 12px;
+      text-align: center;
+    }
+
+    .confirm-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 2000;
+      padding: 18px;
+      background: rgba(29,24,20,.48);
+      backdrop-filter: blur(3px);
+      align-items: center;
+      justify-content: center;
+    }
+
+    .confirm-modal.show {
+      display: flex;
+    }
+
+    .confirm-card {
+      width: min(430px, 100%);
+      padding: 24px 20px 20px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: var(--paper);
+      box-shadow: 0 24px 60px rgba(0,0,0,.20);
+    }
+
+    .confirm-kicker {
+      margin: 0 0 7px;
+      color: var(--gold);
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: .18em;
+    }
+
+    .confirm-card h3 {
+      margin: 0;
+      font-size: 21px;
+      letter-spacing: -.04em;
+    }
+
+    .confirm-copy {
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.65;
+    }
+
+    .confirm-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 18px;
+    }
+
+    @media (max-width: 760px) {
+      .app {
+        width: min(100% - 20px, 1100px);
+        padding-top: 12px;
+      }
+
+      .hero {
+        padding: 21px 16px;
+        border-radius: 17px;
+      }
+
+      .stats {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .admin-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .section {
+        padding: 16px;
+        border-radius: 16px;
+      }
+
+      .ticket-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+
+      .password-box {
+        grid-template-columns: 1fr;
+      }
+
+      .reward-row {
+        grid-template-columns: 40px 1fr;
+      }
+
+      .reward-row .mini-btn {
+        grid-column: 1 / -1;
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="app">
+    <header class="hero">
+      <p class="eyebrow">1000 DAYS ANNIVERSARY</p>
+      <h1>KUJI ADMIN</h1>
+      <p class="hero-copy">
+        티켓 지급과 진행 현황, 실수 복구를 한 화면에서 관리합니다.
+      </p>
+
+      <div class="stats">
+        <div class="stat">
+          <span class="stat-label">AVAILABLE</span>
+          <strong class="stat-value" id="ticketCount">-</strong>
+        </div>
+
+        <div class="stat">
+          <span class="stat-label">DRAWN</span>
+          <strong class="stat-value" id="drawCount">- / 24</strong>
+        </div>
+
+        <div class="stat">
+          <span class="stat-label">ROUND</span>
+          <strong class="stat-value" id="stageCount">-</strong>
+        </div>
+
+        <div class="stat">
+          <span class="stat-label">LAST ONE</span>
+          <strong class="stat-value" id="lastOneState">-</strong>
+        </div>
+      </div>
+
+      <div class="status-row">
+        <span id="pendingStatus" class="status-pill">
+          보상 선택 대기 없음
+        </span>
+
+        <span id="realtimeStatus" class="status-pill">
+          REALTIME 연결 중
+        </span>
+      </div>
+    </header>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <h2 class="section-title">티켓 지급</h2>
+          <p class="section-note">
+            식사 후 관리자 비밀번호를 입력하고 6장씩 지급합니다.
+          </p>
+        </div>
+      </div>
+
+      <div class="password-box">
+        <input
+          class="input"
+          type="password"
+          id="adminPassword"
+          placeholder="관리자 비밀번호"
+          autocomplete="current-password"
+        />
+
+        <button id="refreshButton" class="ghost-btn" type="button">
+          새로고침
+        </button>
+      </div>
+
+      <button id="addButton" class="primary-btn charge-btn" type="button">
+        +6 TICKETS
+      </button>
+
+      <p id="message" class="message"></p>
+    </section>
+
+    <div class="admin-grid">
+      <section class="section">
+        <div class="section-head">
+          <div>
+            <h2 class="section-title">쿠지 현황</h2>
+            <p class="section-note">
+              뽑힌 티켓을 누르면 해당 티켓을 미사용 상태로 복구할 수 있습니다.
+            </p>
+          </div>
+        </div>
+
+        <div id="ticketGrid" class="ticket-grid"></div>
+      </section>
+
+      <section class="section">
+        <div class="section-head">
+          <div>
+            <h2 class="section-title">보상 현황</h2>
+            <p class="section-note">
+              이미 수령 처리된 보상만 다시 선택 상태로 복구할 수 있습니다.
+            </p>
+          </div>
+        </div>
+
+        <div id="rewardList" class="reward-list"></div>
+      </section>
+    </div>
+  </main>
+
+  <div id="confirmModal" class="confirm-modal">
+    <div class="confirm-card">
+      <p class="confirm-kicker">ADMIN RECOVERY</p>
+      <h3 id="confirmTitle">복구하시겠습니까?</h3>
+      <p id="confirmCopy" class="confirm-copy"></p>
+
+      <div class="confirm-actions">
+        <button id="confirmCancel" class="ghost-btn" type="button">
+          취소
+        </button>
+
+        <button id="confirmExecute" class="danger-btn" type="button">
+          복구하기
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://txoldwtwyaorzqhzeuwd.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4b2xkd3R3eWFvcnpxaHpldXdkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY2ODIwMjMsImV4cCI6MjEwMjI1ODAyM30.s6iO08DhEeA_qsJhQXgzFGrGouxyMp49SWUWaBnC3ZU';
+
+    const client = supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_KEY
+    );
+
+    const ticketCount = document.querySelector('#ticketCount');
+    const drawCount = document.querySelector('#drawCount');
+    const stageCount = document.querySelector('#stageCount');
+    const lastOneState = document.querySelector('#lastOneState');
+    const pendingStatus = document.querySelector('#pendingStatus');
+    const realtimeStatus = document.querySelector('#realtimeStatus');
+
+    const adminPassword = document.querySelector('#adminPassword');
+    const addButton = document.querySelector('#addButton');
+    const refreshButton = document.querySelector('#refreshButton');
+    const message = document.querySelector('#message');
+
+    const ticketGrid = document.querySelector('#ticketGrid');
+    const rewardList = document.querySelector('#rewardList');
+
+    const confirmModal = document.querySelector('#confirmModal');
+    const confirmTitle = document.querySelector('#confirmTitle');
+    const confirmCopy = document.querySelector('#confirmCopy');
+    const confirmCancel = document.querySelector('#confirmCancel');
+    const confirmExecute = document.querySelector('#confirmExecute');
+
+    let currentGame = null;
+    let pendingAdminAction = null;
+
+    function setMessage(text = '', type = '') {
+      message.textContent = text;
+      message.className = 'message';
+
+      if (type) {
+        message.classList.add(type);
+      }
+    }
+
+    function requirePassword() {
+      const password = adminPassword.value.trim();
+
+      if (!password) {
+        setMessage('관리자 비밀번호를 입력해주세요.', 'error');
+        adminPassword.focus();
+        return null;
+      }
+
+      return password;
+    }
+
+    async function loadGame() {
+      const { data, error } = await client
+        .from('kuji_game')
+        .select('*')
+        .eq('id', 1)
+        .single();
+
+      if (error) {
+        console.error(error);
+        setMessage('게임 상태를 불러오지 못했습니다.', 'error');
+        return;
+      }
+
+      currentGame = data;
+
+      ticketCount.textContent = data.tickets;
+      drawCount.textContent = `${data.total_draws} / 24`;
+      stageCount.textContent = data.stage;
+      lastOneState.textContent =
+        data.last_one_unlocked ? 'OPEN' : 'LOCK';
+
+      pendingStatus.className = 'status-pill';
+
+      if (data.pending_reward_rank) {
+        pendingStatus.classList.add('pending');
+        pendingStatus.textContent =
+          `${data.pending_ticket_no}번 · ${data.pending_reward_rank} 보상 선택 대기`;
+      } else {
+        pendingStatus.textContent =
+          '보상 선택 대기 없음';
+      }
+
+      if (data.last_one_unlocked) {
+        lastOneState.closest('.stat').style.borderColor = '#c5a66f';
+      } else {
+        lastOneState.closest('.stat').style.borderColor = '';
+      }
+    }
+
+    async function loadTickets() {
+      const { data, error } = await client.rpc(
+        'get_kuji_tickets'
+      );
+
+      if (error) {
+        console.error(error);
+        ticketGrid.innerHTML =
+          '<div class="empty">티켓 정보를 불러오지 못했습니다.</div>';
+        return;
+      }
+
+      ticketGrid.innerHTML = '';
+
+      data.forEach(ticket => {
+        const button = document.createElement('button');
+
+        button.type = 'button';
+        button.className = 'ticket';
+
+        if (ticket.drawn) {
+          button.classList.add('opened');
+
+          if (ticket.rank) {
+            button.classList.add(
+              `rank-${ticket.rank.toLowerCase()}`
+            );
+          }
+
+          button.innerHTML = `
+            <span class="no">${ticket.ticket_no}번</span>
+            <strong class="rank">${ticket.rank ?? '?'}</strong>
+          `;
+
+          button.addEventListener('click', () => {
+            openConfirm({
+              type: 'ticket',
+              id: ticket.ticket_no,
+              title: `${ticket.ticket_no}번 티켓 복구`,
+              copy:
+                `이 티켓을 다시 미사용 상태로 되돌립니다. ` +
+                `연결된 보상이 있다면 함께 복구되고, ` +
+                `뽑기권은 1장 다시 증가합니다.`
+            });
+          });
+        } else {
+          button.innerHTML = `
+            <span class="no">${ticket.ticket_no}번</span>
+            <strong class="rank">미사용</strong>
+          `;
+          button.disabled = true;
+        }
+
+        ticketGrid.appendChild(button);
+      });
+    }
+
+    async function loadRewards() {
+      const { data, error } = await client
+        .from('kuji_rewards')
+        .select(
+          'id, rank, name, description, claimed, claimed_at, claimed_ticket_no'
+        )
+        .order('rank', { ascending: true })
+        .order('id', { ascending: true });
+
+      if (error) {
+        console.error(error);
+        rewardList.innerHTML =
+          '<div class="empty">보상 정보를 불러오지 못했습니다.</div>';
+        return;
+      }
+
+      rewardList.innerHTML = '';
+
+      const claimedRewards = data.filter(
+        reward => reward.claimed
+      );
+
+      if (claimedRewards.length === 0) {
+        rewardList.innerHTML =
+          '<div class="empty">아직 수령 처리된 보상이 없습니다.</div>';
+        return;
+      }
+
+      claimedRewards.forEach(reward => {
+        const row = document.createElement('div');
+        row.className = 'reward-row';
+
+        const ticketText =
+          reward.claimed_ticket_no != null
+            ? `${reward.claimed_ticket_no}번 티켓`
+            : '이전 기록 · 티켓 연결 없음';
+
+        row.innerHTML = `
+          <div class="reward-rank">${reward.rank}</div>
+
+          <div>
+            <div class="reward-name">${escapeHtml(reward.name)}</div>
+            <div class="reward-desc">
+              ${escapeHtml(reward.description ?? '')}
+            </div>
+            <div class="reward-meta">
+              ${ticketText}
+            </div>
+          </div>
+
+          <button
+            class="mini-btn"
+            type="button"
+            ${reward.claimed_ticket_no == null ? 'disabled' : ''}
+          >
+            보상 복구
+          </button>
+        `;
+
+        const restoreButton = row.querySelector('.mini-btn');
+
+        if (reward.claimed_ticket_no != null) {
+          restoreButton.addEventListener('click', () => {
+            openConfirm({
+              type: 'reward',
+              id: reward.id,
+              title: `${reward.rank} 보상 복구`,
+              copy:
+                `“${reward.name}” 수령 처리를 취소하고 ` +
+                `${reward.claimed_ticket_no}번 티켓의 보상 선택 상태로 되돌립니다.`
+            });
+          });
+        }
+
+        rewardList.appendChild(row);
+      });
+    }
+
+    async function refreshAll() {
+      refreshButton.disabled = true;
+
+      await Promise.all([
+        loadGame(),
+        loadTickets(),
+        loadRewards()
+      ]);
+
+      refreshButton.disabled = false;
+    }
+
+    async function addTickets() {
+      const password = requirePassword();
+
+      if (!password) return;
+
+      addButton.disabled = true;
+      setMessage('뽑기권을 지급 중입니다.');
+
+      const { error } = await client.rpc(
+        'add_tickets',
+        {
+          p_count: 6,
+          p_password: password
+        }
+      );
+
+      addButton.disabled = false;
+
+      if (error) {
+        console.error(error);
+
+        if (
+          error.message.includes(
+            'INVALID_ADMIN_PASSWORD'
+          )
+        ) {
+          setMessage(
+            '비밀번호가 틀렸습니다.',
+            'error'
+          );
+        } else {
+          setMessage(
+            '뽑기권 지급에 실패했습니다.',
+            'error'
+          );
+        }
+
+        return;
+      }
+
+      setMessage(
+        '뽑기권 6장 지급 완료!',
+        'success'
+      );
+
+      await refreshAll();
+    }
+
+    function openConfirm(action) {
+      if (!requirePassword()) return;
+
+      pendingAdminAction = action;
+
+      confirmTitle.textContent = action.title;
+      confirmCopy.textContent = action.copy;
+
+      confirmModal.classList.add('show');
+    }
+
+    function closeConfirm() {
+      confirmModal.classList.remove('show');
+      pendingAdminAction = null;
+      confirmExecute.disabled = false;
+    }
+
+    async function executeRecovery() {
+      if (!pendingAdminAction) return;
+
+      const password = requirePassword();
+
+      if (!password) {
+        closeConfirm();
+        return;
+      }
+
+      const action = pendingAdminAction;
+
+      confirmExecute.disabled = true;
+      setMessage('복구 처리 중입니다.');
+
+      let rpcName;
+      let params;
+
+      if (action.type === 'ticket') {
+        rpcName = 'admin_restore_ticket';
+        params = {
+          p_ticket_no: action.id,
+          p_password: password
+        };
+      } else {
+        rpcName = 'admin_restore_reward';
+        params = {
+          p_reward_id: action.id,
+          p_password: password
+        };
+      }
+
+      const { error } = await client.rpc(
+        rpcName,
+        params
+      );
+
+      if (error) {
+        console.error(error);
+
+        if (
+          error.message.includes(
+            'INVALID_ADMIN_PASSWORD'
+          )
+        ) {
+          setMessage(
+            '비밀번호가 틀렸습니다.',
+            'error'
+          );
+        } else if (
+          error.message.includes(
+            'PENDING_REWARD_EXISTS'
+          )
+        ) {
+          setMessage(
+            '현재 다른 보상 선택이 대기 중이라 보상 복구를 할 수 없습니다.',
+            'error'
+          );
+        } else {
+          setMessage(
+            `복구 실패: ${error.message}`,
+            'error'
+          );
+        }
+
+        closeConfirm();
+        return;
+      }
+
+      setMessage(
+        action.type === 'ticket'
+          ? `${action.id}번 티켓 복구 완료!`
+          : '보상 복구 완료! 사용자 페이지에서 다시 선택할 수 있습니다.',
+        'success'
+      );
+
+      closeConfirm();
+      await refreshAll();
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
+    addButton.addEventListener(
+      'click',
+      addTickets
+    );
+
+    refreshButton.addEventListener(
+      'click',
+      refreshAll
+    );
+
+    confirmCancel.addEventListener(
+      'click',
+      closeConfirm
+    );
+
+    confirmExecute.addEventListener(
+      'click',
+      executeRecovery
+    );
+
+    confirmModal.addEventListener(
+      'click',
+      event => {
+        if (event.target === confirmModal) {
+          closeConfirm();
+        }
+      }
+    );
+
+    client
+      .channel('kuji-admin-dashboard')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'kuji_game',
+          filter: 'id=eq.1'
+        },
+        async () => {
+          await refreshAll();
+        }
+      )
+      .subscribe(status => {
+        if (status === 'SUBSCRIBED') {
+          realtimeStatus.textContent =
+            'REALTIME 연결됨';
+        }
+      });
+
+    refreshAll();
+  </script>
+</body>
+</html>
