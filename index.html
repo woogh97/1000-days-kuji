@@ -2873,6 +2873,7 @@
     let dbPendingTicketNo = null;
 
     let pendingRewardChoice = null;
+    let pendingLastOneReveal = false;
     let celebrationCanContinue = false;
     let celebrationNextAction = null;
     let pendingRewardGroup = null;
@@ -2897,10 +2898,19 @@
 
     function updateLastOne(unlocked, autoShow = false) {
       if (!unlocked) {
+        pendingLastOneReveal = false;
         lastOne.classList.remove('show');
         resetLastOneView();
         return;
       }
+
+      // 보상 결과를 아직 확인하지 않았다면 LAST ONE은 기다린다.
+      if (rewardArea.classList.contains('show')) {
+        pendingLastOneReveal = true;
+        return;
+      }
+
+      pendingLastOneReveal = false;
 
       if (autoShow || !lastOne.classList.contains('show')) {
         resetLastOneView();
@@ -3635,7 +3645,8 @@
         .single();
 
       if (latestGame?.last_one_unlocked) {
-        updateLastOne(true, true);
+        // 마지막 보상 결과를 확인하기 전에는 LAST ONE을 띄우지 않는다.
+        pendingLastOneReveal = true;
       }
     }
 
@@ -4047,6 +4058,11 @@
       pendingRewardGroup = null;
 
       resetRewardTheme();
+
+      // 마지막 보상까지 확인한 뒤에만 LAST ONE을 보여준다.
+      if (pendingLastOneReveal) {
+        updateLastOne(true, true);
+      }
     });
 
     function escapeHtml(value) {
