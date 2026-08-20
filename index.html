@@ -2611,7 +2611,7 @@
     <section class="section">
       <div class="section-head">
         <h2>쿠지를 골라주세요</h2>
-        <small>24 TICKETS</small>
+        <small id="totalTicketLabel">- TICKETS</small>
       </div>
       <div id="ticketList" class="ticket-grid"></div>
       <p id="notice" class="notice"></p>
@@ -2809,6 +2809,7 @@
     );
 
     const ticketCount = document.querySelector('#ticketCount');
+    const totalTicketLabel = document.querySelector('#totalTicketLabel');
     const ticketList = document.querySelector('#ticketList');
     const notice = document.querySelector('#notice');
     const prizeBoardList = document.querySelector('#prizeBoardList');
@@ -3005,6 +3006,9 @@
         return;
       }
 
+      totalTicketLabel.textContent =
+        `${data.length} TICKETS`;
+
       ticketList.innerHTML = '';
 
       data.forEach(ticket => {
@@ -3030,9 +3034,14 @@
         if (ticket.drawn) {
           btn.classList.add('drawn-ticket');
 
-          if (ticket.rank) {
+          if (
+            ticket.rank &&
+            ['A', 'B', 'C', 'D', 'E'].includes(
+              String(ticket.rank).toUpperCase()
+            )
+          ) {
             btn.classList.add(
-              `rank-ticket-${ticket.rank.toLowerCase()}`
+              `rank-ticket-${String(ticket.rank).toLowerCase()}`
             );
           }
 
@@ -3723,8 +3732,7 @@
 
       prizeBoardList.innerHTML = '';
 
-      ['A', 'B', 'C', 'D', 'E'].forEach(rank => {
-        if (!rankMap.has(rank)) return;
+      Array.from(rankMap.keys()).forEach(rank => {
 
         const groups =
           Array.from(rankMap.get(rank).values());
@@ -4045,9 +4053,16 @@
 
       if (!rank) return;
 
-      rewardArea.classList.add(
-        `rank-${String(rank).toLowerCase()}`
-      );
+      const normalized =
+        String(rank).toUpperCase();
+
+      // 기존 A~E만 전용 테마 사용.
+      // 임의 등급은 기본 보상 카드 스타일로 자연스럽게 표시한다.
+      if (['A', 'B', 'C', 'D', 'E'].includes(normalized)) {
+        rewardArea.classList.add(
+          `rank-${normalized.toLowerCase()}`
+        );
+      }
     }
 
     rewardDone.addEventListener('click', () => {
@@ -4075,6 +4090,19 @@
         .replaceAll('>', '&gt;')
         .replaceAll('"', '&quot;')
         .replaceAll("'", '&#039;');
+    }
+
+    let realtimeRefreshTimer = null;
+
+    function scheduleUserConfigRefresh() {
+      clearTimeout(realtimeRefreshTimer);
+
+      realtimeRefreshTimer = setTimeout(async () => {
+        await Promise.all([
+          loadTickets(),
+          loadPrizeBoard()
+        ]);
+      }, 120);
     }
 
     client
@@ -4105,11 +4133,26 @@
           dbPendingTicketNo =
             payload.new.pending_ticket_no ?? null;
 
-          await Promise.all([
-            loadTickets(),
-            loadPrizeBoard()
-          ]);
+          scheduleUserConfigRefresh();
         }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'kuji_tickets'
+        },
+        scheduleUserConfigRefresh
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'kuji_rewards'
+        },
+        scheduleUserConfigRefresh
       )
       .subscribe();
 
