@@ -576,6 +576,113 @@
       min-width: 120px;
     }
 
+
+    .config-area { display:grid; gap:14px; }
+
+    .config-summary {
+      display:flex;
+      align-items:baseline;
+      justify-content:center;
+      gap:7px;
+      padding:15px;
+      border:1px solid var(--line);
+      border-radius:14px;
+      background:rgba(255,255,255,.72);
+      color:var(--muted);
+      font-size:11px;
+      font-weight:800;
+    }
+
+    .config-summary strong {
+      color:var(--ink);
+      font-size:28px;
+      font-weight:1000;
+      line-height:1;
+    }
+    .config-card {
+      padding:16px;
+      border:1px solid var(--line);
+      border-radius:15px;
+      background:rgba(255,255,255,.62);
+    }
+    .config-card-head {
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      margin-bottom:14px;
+    }
+    .config-card-head strong { font-size:14px; }
+    .config-card-head p {
+      margin:4px 0 0;
+      color:var(--muted);
+      font-size:10px;
+      line-height:1.5;
+    }
+    .rank-config-grid {
+      display:grid;
+      grid-template-columns:repeat(5,1fr);
+      gap:8px;
+    }
+    .rank-config-grid label { display:grid; gap:5px; }
+    .rank-config-grid span {
+      text-align:center;
+      font-size:12px;
+      font-weight:1000;
+    }
+    .rank-config-grid .input {
+      min-height:42px;
+      padding:0 8px;
+      text-align:center;
+    }
+    .config-validation { display:grid; gap:6px; margin-top:12px; }
+    .validation-row {
+      display:grid;
+      grid-template-columns:32px 1fr auto;
+      align-items:center;
+      gap:8px;
+      padding:8px 10px;
+      border:1px solid var(--line);
+      border-radius:10px;
+      background:#fff;
+      font-size:11px;
+    }
+    .validation-row.ok { background:#f2f7ef; border-color:#b9c8b5; }
+    .validation-row.bad { background:#fff1ee; border-color:#d9aaa3; }
+    .config-reward-list { display:grid; gap:9px; }
+    .config-reward-row {
+      display:grid;
+      grid-template-columns:44px 1fr auto;
+      gap:10px;
+      align-items:center;
+      padding:11px;
+      border:1px solid var(--line);
+      border-radius:12px;
+      background:#fff;
+    }
+    .config-reward-rank {
+      display:grid;
+      place-items:center;
+      width:38px;
+      height:38px;
+      border-radius:10px;
+      background:var(--paper-2);
+      font-weight:1000;
+    }
+    .config-reward-name { font-size:12px; font-weight:900; }
+    .config-reward-desc { margin-top:3px; color:var(--muted); font-size:10px; }
+    .config-reward-meta { margin-top:4px; color:#9b7045; font-size:10px; font-weight:800; }
+    .config-reward-actions { display:flex; flex-wrap:wrap; gap:6px; justify-content:flex-end; }
+    .config-reward-actions button {
+      min-height:34px;
+      padding:0 10px;
+      border-radius:9px;
+      font-size:10px;
+      font-weight:900;
+      cursor:pointer;
+    }
+    .config-editor-grid { display:grid; gap:9px; margin-top:15px; }
+
     @media (max-width: 760px) {
       .app {
         width: min(100% - 20px, 1100px);
@@ -629,6 +736,18 @@
         width: 100%;
       }
 
+      .config-card-head {
+        align-items:stretch;
+        flex-direction:column;
+      }
+      .config-card-head button { width:100%; }
+      .config-reward-row { grid-template-columns:40px 1fr; }
+      .config-reward-actions {
+        grid-column:1 / -1;
+        justify-content:stretch;
+      }
+      .config-reward-actions button { flex:1; }
+
       .danger-box {
         align-items: stretch;
         flex-direction: column;
@@ -658,7 +777,7 @@
 
         <div class="stat">
           <span class="stat-label">DRAWN</span>
-          <strong class="stat-value" id="drawCount">- / 24</strong>
+          <strong class="stat-value" id="drawCount">- / -</strong>
         </div>
 
         <div class="stat">
@@ -763,7 +882,49 @@
       </section>
     </div>
 
-    <section class="section danger-zone">
+    
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <h2 class="section-title">KUJI CONFIG</h2>
+          <p class="section-note">
+            보상 구성이 곧 쿠지 구성입니다. 보상을 수정하면 쿠지 장수와 등급도 자동으로 맞춰집니다.
+          </p>
+        </div>
+
+        <button id="configLoadButton" class="ghost-btn" type="button">
+          설정 불러오기
+        </button>
+      </div>
+
+      <div id="configLockedNotice" class="empty">
+        관리자 비밀번호 확인 후 설정을 불러올 수 있습니다.
+      </div>
+
+      <div id="configArea" class="config-area" style="display:none;">
+        <div class="config-summary">
+          <span>현재 총 쿠지</span>
+          <strong id="configTotalTickets">-</strong>
+          <span>장</span>
+        </div>
+
+        <div class="config-card">
+          <div class="config-card-head">
+            <div>
+              <strong>보상 구성</strong>
+              <p>상품 추가·삭제·수량 변경 시 쿠지 장수와 등급 배치가 자동으로 다시 생성됩니다.</p>
+            </div>
+            <button id="addRewardGroupButton" class="primary-btn" type="button">
+              새 상품 추가
+            </button>
+          </div>
+
+          <div id="configRewardList" class="config-reward-list"></div>
+        </div>
+      </div>
+    </section>
+
+<section class="section danger-zone">
       <div class="section-head">
         <div>
           <h2 class="section-title">전체 초기화</h2>
@@ -789,6 +950,23 @@
     </section>
 
   </main>
+
+
+  <div id="configModal" class="confirm-modal">
+    <div class="confirm-card">
+      <p class="confirm-kicker">KUJI CONFIG</p>
+      <h3 id="configModalTitle">상품 설정</h3>
+      <p id="configModalCopy" class="confirm-copy"></p>
+
+      <div id="configModalFields" class="config-editor-grid"></div>
+      <p id="configModalMessage" class="message"></p>
+
+      <div class="confirm-actions">
+        <button id="configModalCancel" class="ghost-btn" type="button">취소</button>
+        <button id="configModalSave" class="primary-btn" type="button">저장</button>
+      </div>
+    </div>
+  </div>
 
   <div id="swapModal" class="confirm-modal">
     <div class="confirm-card">
@@ -863,6 +1041,21 @@
 
     const ticketGrid = document.querySelector('#ticketGrid');
     const rewardList = document.querySelector('#rewardList');
+
+    const configLoadButton = document.querySelector('#configLoadButton');
+    const configLockedNotice = document.querySelector('#configLockedNotice');
+    const configArea = document.querySelector('#configArea');
+    const configRewardList = document.querySelector('#configRewardList');
+    const addRewardGroupButton = document.querySelector('#addRewardGroupButton');
+    const configTotalTickets = document.querySelector('#configTotalTickets');
+
+    const configModal = document.querySelector('#configModal');
+    const configModalTitle = document.querySelector('#configModalTitle');
+    const configModalCopy = document.querySelector('#configModalCopy');
+    const configModalFields = document.querySelector('#configModalFields');
+    const configModalMessage = document.querySelector('#configModalMessage');
+    const configModalCancel = document.querySelector('#configModalCancel');
+    const configModalSave = document.querySelector('#configModalSave');
     const resetGameButton = document.querySelector('#resetGameButton');
 
     const swapModal = document.querySelector('#swapModal');
@@ -885,6 +1078,10 @@
     let pendingAdminAction = null;
     let pendingSwapTicket = null;
     let pendingSwapRank = null;
+
+    let configPassword = null;
+    let configModalAction = null;
+    let currentTotalTickets = null;
 
     function setMessage(text = '', type = '') {
       message.textContent = text;
@@ -920,7 +1117,8 @@
       currentGame = data;
 
       ticketCount.textContent = data.tickets;
-      drawCount.textContent = `${data.total_draws} / 24`;
+      drawCount.textContent =
+        `${data.total_draws} / ${currentTotalTickets ?? '-'}`;
       stageCount.textContent = data.stage;
       lastOneState.textContent =
         data.last_one_unlocked ? 'OPEN' : 'LOCK';
@@ -982,6 +1180,17 @@
         }
 
         return;
+      }
+
+      currentTotalTickets = data.length;
+
+      if (currentGame) {
+        drawCount.textContent =
+          `${currentGame.total_draws} / ${currentTotalTickets}`;
+      }
+
+      if (configTotalTickets && configPassword) {
+        configTotalTickets.textContent = currentTotalTickets;
       }
 
       ticketGrid.innerHTML = '';
@@ -1333,6 +1542,25 @@
       confirmExecute.disabled = true;
       setConfirmMessage('처리 중입니다.');
 
+      if (action.type === 'config-view') {
+        try {
+          await loadKujiConfig(password);
+          closeConfirm();
+          setMessage('KUJI CONFIG를 불러왔습니다.', 'success');
+        } catch (error) {
+          console.error(error);
+          confirmExecute.disabled = false;
+
+          if (error.message?.includes('INVALID_ADMIN_PASSWORD')) {
+            setConfirmMessage('비밀번호가 틀렸습니다.', 'error');
+            confirmPassword.select();
+          } else {
+            setConfirmMessage(`설정 조회 실패: ${error.message}`, 'error');
+          }
+        }
+        return;
+      }
+
       if (action.type === 'view') {
         const { error } = await client.rpc(
           'admin_get_kuji_tickets',
@@ -1529,6 +1757,218 @@
 
       closeConfirm();
       await refreshAll(refreshPassword);
+
+    }
+
+
+    function setConfigModalMessage(text = '', type = '') {
+      configModalMessage.textContent = text;
+      configModalMessage.className = 'message';
+      if (type) configModalMessage.classList.add(type);
+    }
+
+    function groupRewards(rows) {
+      const map = new Map();
+
+      rows.forEach(row => {
+        const key = [row.rank, row.name, row.description ?? ''].join('||');
+
+        if (!map.has(key)) {
+          map.set(key, {
+            rank: row.rank,
+            name: row.name,
+            description: row.description ?? '',
+            rows: []
+          });
+        }
+
+        map.get(key).rows.push(row);
+      });
+
+      return Array.from(map.values());
+    }
+
+    async function loadKujiConfig(password) {
+      const [rewards, tickets] = await Promise.all([
+        client
+          .from('kuji_rewards')
+          .select('id,rank,name,description,claimed,claimed_at,claimed_ticket_no')
+          .order('rank', { ascending: true })
+          .order('id', { ascending: true }),
+        client.rpc('admin_get_kuji_tickets', {
+          p_password: password
+        })
+      ]);
+
+      if (rewards.error) throw rewards.error;
+      if (tickets.error) throw tickets.error;
+
+      configPassword = password;
+      configLockedNotice.style.display = 'none';
+      configArea.style.display = '';
+
+      configTotalTickets.textContent = tickets.data.length;
+
+      renderConfigRewards(rewards.data);
+    }
+
+    function renderConfigRewards(rows) {
+      configRewardList.innerHTML = '';
+
+      groupRewards(rows).forEach(group => {
+        const claimedCount = group.rows.filter(r => r.claimed).length;
+        const row = document.createElement('div');
+        row.className = 'config-reward-row';
+
+        row.innerHTML = `
+          <div class="config-reward-rank">${group.rank}</div>
+          <div>
+            <div class="config-reward-name">${escapeHtml(group.name)}</div>
+            <div class="config-reward-desc">${escapeHtml(group.description)}</div>
+            <div class="config-reward-meta">
+              수량 ${group.rows.length} · 사용 ${claimedCount}
+            </div>
+          </div>
+          <div class="config-reward-actions">
+            <button class="ghost-btn edit-btn" type="button">수정</button>
+            <button class="secondary-btn qty-btn" type="button">수량</button>
+            <button class="danger-btn delete-btn" type="button">삭제</button>
+          </div>
+        `;
+
+        row.querySelector('.edit-btn').addEventListener('click', () => {
+          configModalAction = { type:'edit', group };
+          configModalTitle.textContent = `${group.rank} 상품 수정`;
+          configModalCopy.textContent = '상품명과 설명을 수정합니다.';
+          configModalFields.innerHTML = `
+            <input id="cfgName" class="input" value="${escapeHtml(group.name)}" placeholder="상품명">
+            <input id="cfgDesc" class="input" value="${escapeHtml(group.description)}" placeholder="설명">
+          `;
+          configModalSave.textContent = '저장';
+          setConfigModalMessage('');
+          configModal.classList.add('show');
+        });
+
+        row.querySelector('.qty-btn').addEventListener('click', () => {
+          configModalAction = { type:'quantity', group };
+          configModalTitle.textContent = `${group.rank} 상품 수량`;
+          configModalCopy.textContent = `${group.name}의 목표 수량을 입력해주세요.`;
+          configModalFields.innerHTML = `
+            <input id="cfgQty" class="input" type="number" min="0" value="${group.rows.length}">
+          `;
+          configModalSave.textContent = '수량 저장';
+          setConfigModalMessage('');
+          configModal.classList.add('show');
+        });
+
+        row.querySelector('.delete-btn').addEventListener('click', () => {
+          configModalAction = { type:'delete', group };
+          configModalTitle.textContent = `${group.rank} 상품 삭제`;
+          configModalCopy.textContent =
+            `“${group.name}” 상품 그룹 전체를 삭제합니다. 이미 사용된 보상이 있으면 삭제할 수 없습니다.`;
+          configModalFields.innerHTML = '';
+          configModalSave.textContent = '삭제';
+          setConfigModalMessage('');
+          configModal.classList.add('show');
+        });
+
+        configRewardList.appendChild(row);
+      });
+    }
+
+    function openAddRewardModal() {
+      configModalAction = { type:'add' };
+      configModalTitle.textContent = '새 상품 추가';
+      configModalCopy.textContent = '등급, 상품명, 설명, 수량을 입력해주세요.';
+      configModalFields.innerHTML = `
+        <input
+          id="cfgRank"
+          class="input"
+          maxlength="20"
+          placeholder="등급명 (예: A, S, SPECIAL)"
+        >
+        <input id="cfgName" class="input" placeholder="상품명">
+        <input id="cfgDesc" class="input" placeholder="설명">
+        <input id="cfgQty" class="input" type="number" min="1" value="1" placeholder="수량">
+      `;
+      configModalSave.textContent = '상품 추가';
+      setConfigModalMessage('');
+      configModal.classList.add('show');
+    }
+
+    function closeConfigModal() {
+      configModal.classList.remove('show');
+      configModalAction = null;
+      configModalFields.innerHTML = '';
+      setConfigModalMessage('');
+    }
+
+    async function executeConfigAction() {
+      if (!configModalAction || !configPassword) return;
+
+      const action = configModalAction;
+      let rpcName;
+      let params;
+
+      if (action.type === 'edit') {
+        rpcName = 'admin_update_reward_group';
+        params = {
+          p_rank: action.group.rank,
+          p_old_name: action.group.name,
+          p_old_description: action.group.description,
+          p_new_name: document.querySelector('#cfgName').value.trim(),
+          p_new_description: document.querySelector('#cfgDesc').value.trim(),
+          p_password: configPassword
+        };
+      } else if (action.type === 'quantity') {
+        rpcName = 'admin_set_reward_quantity';
+        params = {
+          p_rank: action.group.rank,
+          p_name: action.group.name,
+          p_description: action.group.description,
+          p_quantity: Number(document.querySelector('#cfgQty').value),
+          p_password: configPassword
+        };
+      } else if (action.type === 'delete') {
+        rpcName = 'admin_delete_reward_group';
+        params = {
+          p_rank: action.group.rank,
+          p_name: action.group.name,
+          p_description: action.group.description,
+          p_password: configPassword
+        };
+      } else {
+        rpcName = 'admin_add_reward_group';
+        params = {
+          p_rank: document.querySelector('#cfgRank').value,
+          p_name: document.querySelector('#cfgName').value.trim(),
+          p_description: document.querySelector('#cfgDesc').value.trim(),
+          p_quantity: Number(document.querySelector('#cfgQty').value),
+          p_password: configPassword
+        };
+      }
+
+      configModalSave.disabled = true;
+      setConfigModalMessage('처리 중입니다.');
+
+      const { error } = await client.rpc(rpcName, params);
+
+      configModalSave.disabled = false;
+
+      if (error) {
+        console.error(error);
+        setConfigModalMessage(`처리 실패: ${error.message}`, 'error');
+        return;
+      }
+
+      closeConfigModal();
+
+      // 보상 변경 RPC에서 kuji_tickets가 재생성될 수 있으므로
+      // 설정 영역뿐 아니라 상단 통계/쿠지 현황까지 즉시 다시 읽는다.
+      await refreshAll(configPassword);
+      await loadKujiConfig(configPassword);
+
+      setMessage('KUJI CONFIG 저장 완료!', 'success');
     }
 
     function escapeHtml(value) {
@@ -1588,6 +2028,25 @@
         });
       }
     );
+
+    configLoadButton.addEventListener('click', () => {
+      openConfirm({
+        type: 'config-view',
+        id: null,
+        kicker: 'KUJI CONFIG',
+        title: '쿠지 설정을 불러올까요?',
+        copy: '관리자 비밀번호를 입력하면 등급 수량과 상품 구성을 편집할 수 있습니다.',
+        confirmText: '설정 열기'
+      });
+    });
+
+    addRewardGroupButton.addEventListener('click', openAddRewardModal);
+    configModalCancel.addEventListener('click', closeConfigModal);
+    configModalSave.addEventListener('click', executeConfigAction);
+
+    configModal.addEventListener('click', event => {
+      if (event.target === configModal) closeConfigModal();
+    });
 
     resetGameButton.addEventListener(
       'click',
@@ -1652,6 +2111,22 @@
       }
     );
 
+    let realtimeRefreshTimer = null;
+
+    function scheduleRealtimeRefresh() {
+      clearTimeout(realtimeRefreshTimer);
+
+      // rebuild 시 DELETE/INSERT가 연속으로 여러 번 들어올 수 있어서
+      // 짧게 묶어서 한 번만 새로고침한다.
+      realtimeRefreshTimer = setTimeout(async () => {
+        await refreshAll(configPassword);
+
+        if (configPassword && configArea.style.display !== 'none') {
+          await loadKujiConfig(configPassword);
+        }
+      }, 120);
+    }
+
     client
       .channel('kuji-admin-dashboard')
       .on(
@@ -1662,9 +2137,16 @@
           table: 'kuji_game',
           filter: 'id=eq.1'
         },
-        async () => {
-          await refreshAll();
-        }
+        scheduleRealtimeRefresh
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'kuji_tickets'
+        },
+        scheduleRealtimeRefresh
       )
       .subscribe(status => {
         if (status === 'SUBSCRIBED') {
